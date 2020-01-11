@@ -378,5 +378,9 @@ export default new Vuex.Store({
             return response.status;
 
         },
+        async resendVerification(context, email) {
+            const response = await axios.get(`/user/resendverification?email=${email}`);
+            return response.status;
+        },
     }
 });
