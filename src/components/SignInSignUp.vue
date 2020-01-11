@@ -75,7 +75,10 @@
         </div>
         <div class="mt-4">
           <transition-group name="login-error-fade">
-            <p v-for="error in formErrors" :key="error" class="text-sm text-red-500 py-1">{{error}}</p>
+            <p v-for="error in formErrors" :key="error" class="text-sm text-red-500 py-1">
+              {{error}}
+              <button @click.prevent="resendVerification" type="button" class="text-green-700 font-bold hover:text-green-500" v-if="error.includes('Account is not verified')">Resend verification link?</button>
+            </p>
           </transition-group>
         </div>
         <div v-if="!showSignup" class="flex justify-center mt-6">
@@ -237,6 +240,17 @@ export default {
         });
       }
     },
+    resendVerification() {
+      const emailRegex = new RegExp(/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/i);
+      if(!this.email.trim().match(emailRegex)) {this.formErrors.email = 'Email is invalid.'; this.formHasErrors = true}
+
+      if(!this.formHasErrors) {
+        this.$store.dispatch('resendVerification', this.email).then(() => {
+          this.formHasErrors = false;
+          this.formErrors = {};
+        });
+      }
+    }
   }
 }
 </script>
