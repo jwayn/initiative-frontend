@@ -382,5 +382,25 @@ export default new Vuex.Store({
             const response = await axios.get(`/user/resendverification?email=${email}`);
             return response.status;
         },
+        async updatePassword(context, {currentPass, newPass}) {
+            const response = await axios.put(`/user/updatepassword`, {currentPass, newPass},
+            {
+                headers: {
+                    'Content-Type' : 'application/json',
+                    'Authorization' : 'Bearer ' + this.state.token
+                },
+            });
+            return response.status;
+        },
+        async updateForgotPassword(context, {newPass, token}) {
+            const response = await axios.put(`/user/updateforgotpass`, {newPass, token},
+            {
+                headers: {
+                    'Content-Type' : 'application/json',
+                    'Authorization' : 'Bearer ' + this.state.token
+                },
+            });
+            return response.status;
+        }
     }
 });

@@ -1,3 +1,4 @@
+// eslint-disable no-console
 <template>
   <div v-if="!loading" class="flex flex-col justify-center w-full max-w-3xl">
     
@@ -42,12 +43,68 @@
     
     <div class="flex flex-wrap justify-around my-8 w-sm">
       <button @click.prevent="showDeleteAccountModal = true" class="rounded shadow bg-gray-500 text-white px-4 py-2 my-2">Delete Account</button>
-      <button @click.prevent="showResetPasswordModal = true" class="rounded shadow bg-green-700 text-white px-4 py-2 my-2">Reset Password</button>
+      <button @click.prevent="showResetPass = true" class="rounded shadow bg-green-700 text-white px-4 py-2 my-2">Reset Password</button>
     </div>
 
-    <Modal v-if="showResetPasswordModal" v-on:cancel="showResetPasswordModal = false" v-on:green="showResetPasswordModal = false" green="Ok" title="Hey, listen!">
-      <p>A reset password link has been sent to <span class="font-bold">{{user.email}}</span>. Please follow the link to reset your password.</p>
-    </Modal>
+
+    <div class="flex justify-center">
+      <div v-if="showResetPass" class="w-full max-w-sm md:max-w-md mx-4">
+        <form>
+          <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="currentPass">
+              Current Password
+            </label>
+            <input
+              @change="validatePasswordFields"
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              :class="passwordsNotEmpty ? '' : 'border-red-700 bg-red-200'"
+              id="currentPass" 
+              type="password" 
+              placeholder="******************" 
+              v-model="currentPass">
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="newPass">
+              New Password
+            </label>
+            <input 
+              @change="validatePasswordFields"
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              :class="passwordsMatch && passwordsNotEmpty ? '' : 'border-red-700 bg-red-200'"
+              id="newPass" 
+              type="password" 
+              placeholder="******************" 
+              v-model="newPass">
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="newPassVerification">
+              Verify Password
+            </label>
+            <input
+              @change="validatePasswordFields"
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              :class="passwordsMatch && passwordsNotEmpty ? '' : 'border-red-700 bg-red-200'"
+              id="newPassVerification" 
+              type="password" 
+              placeholder="******************" 
+              v-model="newPassVerification">
+          </div>
+
+          <div class="flex justify-end">
+
+            <button type="submit" @click.prevent="resetPassword" class="rounded text-white py-2 px-8" :class="(!passwordsMatch || !passwordsNotEmpty) ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-700'" :disabled="!passwordsMatch || !passwordsNotEmpty">
+              Save
+            </button>
+          
+          </div>
+
+          <p v-if="errorMessage" class="text-red-500 text-center my-8">{{errorMessage}}</p>
+
+        </form>
+      </div>
+    </div>
 
     <Modal v-if="showDeleteAccountModal" v-on:cancel="showDeleteAccountModal = false" title="Warning" v-on:gray="showDeleteAccountModal = false" v-on:red="deleteAccount" gray="Cancel" red="Delete">
       <p>Are you sure you want to delete your account? This is irreversable and will delete all stored data associated with your account.</p>
@@ -67,8 +124,14 @@ export default {
     return {
       user: {},
       loading: false,
-      showResetPasswordModal: false,
       showDeleteAccountModal: false,
+      showResetPass: false,
+      currentPass: '',
+      newPass: '',
+      newPassVerification: '',
+      passwordsMatch: true,
+      passwordsNotEmpty: true,
+      errorMessage: '',
     }
   },
   components: {
@@ -76,8 +139,8 @@ export default {
     Modal,
   },
   computed: {
-    accountCreated: function() {return moment(this.user.created).format('MMM Do YYYY h:mm:ss a')},
-    lastLogin: function() {return moment(this.user.last_login).format('MMM Do YYYY h:mm:ss a')},
+    lastLogin: function() {return moment.utc(this.user.last_login).local().format('MMMM Do, YYYY @ h:mm:ss a')},
+    accountCreated: function() {return moment.utc(this.user.created).local().format('MMMM Do, YYYY @ h:mm:ss a')},
     
   },
   methods: {
@@ -85,10 +148,33 @@ export default {
       this.$store.dispatch('deleteAccount');
     },
     resetPassword() {
-      /* TODO */
-      //Show a reset password form
-      //Create backend route for resetting password with original
+      this.validatePasswordFields();
+      if(this.passwordsMatch && this.passwordsNotEmpty) {
+          this.$store.dispatch('updatePassword', {currentPass: this.currentPass, newPass: this.newPass}).then(res => {
+            //eslint-disable-next-line
+            console.log(res);
+            if(res === 200) {
+              this.currentPass = '';
+              this.newPass = '';
+              this.newPassVerification = '';
+              this.errorMessage = 'New password saved.';
+            } else {
+              this.errorMessage = 'Could not update password. Please try again.'
+            }
+          });
+      }
     },
+    validatePasswordFields() {
+      this.passwordsMatch = true;
+      this.passwordsNotEmpty = true;
+      if(!(this.currentPass.trim().length > 5 && this.newPass.trim().length > 5 && this.newPassVerification.trim().length > 5)) {
+        this.passwordsNotEmpty = false;
+      }
+
+      if(this.newPass.trim() !== this.newPassVerification.trim()) {
+        this.passwordsMatch = false;
+      }
+    }
   },
   async mounted() {
     this.loading = true;
